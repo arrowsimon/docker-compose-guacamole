@@ -1,0 +1,60 @@
+version: "3"
+services:
+  init-db:
+    image: guacamole/guacamole:latest
+    command: ["/bin/sh", "-c", "test -e /init/initdb.sql && echo 'init file already exists' || /opt/guacamole/bin/initdb.sh --postgres > /init/initdb.sql" ]
+    volumes:
+      - dbinit:/init
+
+  db:
+    image: postgres:latest
+    restart: unless-stopped
+    volumes:  
+      - dbinit:/docker-entrypoint-initdb.d    
+      - ./dbdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-guacdb}
+      POSTGRES_PASSWORD:
+    networks:
+      - internal
+    depends_on:
+      - init-db
+
+  daemon:
+    image: guacamole/guacd:latest
+    restart: unless-stopped
+    networks:
+      - internal
+
+  web:
+    image: guacamole/guacamole:latest
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      GUACD_HOSTNAME: daemon
+      POSTGRES_HOSTNAME: db
+      POSTGRES_DATABASE: ${POSTGRES_USER:-guacdb}
+      POSTGRES_USER: ${POSTGRES_USER:-guacdb}
+      POSTGRES_PASSWORD:
+    depends_on:
+      - db
+      - daemon
+    networks:
+      - internal
+      - traefik-net
+    labels:
+      - "traefik.docker.network=traefik-net"
+      - "traefik.enable=true"
+      - "traefik.frontend.rule=Host:guacamole.spgo.xyz;AddPrefix:/guacamole"
+      - "traefik.port=8080"
+      - "traefik.protocol=http"
+
+networks:
+  internal:
+  traefik-net:
+    external: true
+
+volumes:
+  dbdata:
+  dbinit:
