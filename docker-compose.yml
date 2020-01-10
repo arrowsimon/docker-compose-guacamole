@@ -15,16 +15,12 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-guacdb}
       POSTGRES_PASSWORD:
-    networks:
-      - internal
     depends_on:
       - init-db
 
   daemon:
     image: guacamole/guacd:latest
     restart: unless-stopped
-    networks:
-      - internal
 
   web:
     image: guacamole/guacamole:latest
@@ -41,20 +37,18 @@ services:
       - db
       - daemon
     networks:
-      - internal
-      - traefik-net
+      - default      
+      - traefik
     labels:
-      - "traefik.docker.network=traefik-net"
+      - "traefik.docker.network=traefik"      
       - "traefik.enable=true"
-      - "traefik.frontend.rule=Host:guacamole.spgo.xyz;AddPrefix:/guacamole"
+      - "traefik.frontend.rule=Host:guacamole.arrowdemo.se;AddPrefix:/guacamole"
       - "traefik.port=8080"
       - "traefik.protocol=http"
 
 networks:
-  internal:
-  traefik-net:
+  traefik:
     external: true
 
 volumes:
-  dbdata:
   dbinit:
