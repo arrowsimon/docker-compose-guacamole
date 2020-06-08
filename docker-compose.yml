@@ -7,6 +7,7 @@ services:
       - dbinit:/init
 
   db:
+    container_name: guacamole_db     
     image: postgres:latest
     restart: unless-stopped
     volumes:  
@@ -19,10 +20,12 @@ services:
       - init-db
 
   daemon:
+    container_name: guacamole_daemon     
     image: guacamole/guacd:latest
     restart: unless-stopped
 
   web:
+    container_name: guacamole_web      
     image: guacamole/guacamole:latest
     restart: unless-stopped
     expose:
@@ -38,16 +41,16 @@ services:
       - daemon
     networks:
       - default      
-      - traefik
+      - web
     labels:
-      - "traefik.docker.network=traefik"      
       - "traefik.enable=true"
-      - "traefik.frontend.rule=Host:guacamole.arrowdemo.se;AddPrefix:/guacamole"
-      - "traefik.port=8080"
-      - "traefik.protocol=http"
-
+      - "traefik.http.routers.web-guacamole.rule=Host(`guacamole.arrowdemo.se`)"
+      - "traefik.http.routers.web-guacamole.tls=true"
+      - "traefik.http.routers.web-guacamole.tls.certresolver=le"
+      - "traefik.http.routers.web-guacamole.middlewares=add-guacamole"
+      - "traefik.http.middlewares.add-guacamole.addprefix.prefix=/guacamole"
 networks:
-  traefik:
+  web:
     external: true
 
 volumes:
